@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with PytgVoIP.  If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import os
-from threading import Thread
 from collections import deque
 from typing import Union, List, IO
 
@@ -140,7 +140,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
     def file_changed(self):
         args = (self, self.current_file, self.current_file_index)
         for handler in self.file_changed_handlers:
-            callable(handler) and Thread(target=handler, args=args).start()
+            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args))
 
     def file_progress(self, bytes_offset: int, total_bytes: int, percentage: int):
         if self.last_progress_percentage == round(percentage, 1):
@@ -148,7 +148,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         args = (self, bytes_offset, total_bytes, percentage)
         self.last_progress_percentage = round(percentage, 1)
         for handler in self.file_progress_handlers:
-            callable(handler) and Thread(target=handler, args=args).start()
+            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args))
 
     def previous_file(self):
         if len(self.input_files):
