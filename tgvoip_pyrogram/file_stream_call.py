@@ -40,6 +40,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         self.file_changed_handlers = []
         self.file_progress_handlers = []
         self.last_progress_percentage = 0
+        self.event_loop = asyncio.get_event_loop()
 
     def __del__(self):
         self.clear_play_queue()
@@ -140,7 +141,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
     def file_changed(self):
         args = (self, self.current_file, self.current_file_index)
         for handler in self.file_changed_handlers:
-            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args))
+            asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
 
     def file_progress(self, bytes_offset: int, total_bytes: int, percentage: int):
         if self.last_progress_percentage == round(percentage, 1):
@@ -148,7 +149,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         args = (self, bytes_offset, total_bytes, percentage)
         self.last_progress_percentage = round(percentage, 1)
         for handler in self.file_progress_handlers:
-            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args))
+            asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
 
     def previous_file(self):
         if len(self.input_files):
