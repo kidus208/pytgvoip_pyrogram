@@ -181,7 +181,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
     def seek(self, bytes_offset: int, file_index: int = None):
         # round to the largest even number lower than or equal to bytes_offset
         even,rest = divmod(bytes_offset, 2)
-        bytes_offset *= 2
+        bytes_offset = even*2
 
         files = self.hold_files if len(self.hold_files) else self.input_files
         if file_index >= len(files):
