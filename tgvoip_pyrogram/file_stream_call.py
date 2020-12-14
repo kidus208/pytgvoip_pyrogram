@@ -38,6 +38,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         self.ctrl.set_send_audio_frame_callback(self._read_frame)
         self.ctrl.set_recv_audio_frame_callback(self._write_frame)
         self.file_changed_handlers = []
+        self.file_ended_handlers = []
         self.file_progress_handlers = []
         self.last_progress_percentage = 0
         self.event_loop = asyncio.get_event_loop()
@@ -123,6 +124,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         self.file_progress(self.current_bytes_offset, file.size, (self.current_bytes_offset*100)/file.size)
 
         if len(frame) != length:
+            self.file_ended()
             self.next_file()
         return frame
 
@@ -133,7 +135,11 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
     def on_file_changed(self, func: callable) -> callable: # the current file on self.hold_files has changed
         self.file_changed_handlers.append(func)
         return func
-
+    
+    def on_file_ended(self, func: callable) -> callable: # reached the end of the current file on self.hold_files or self.input_files
+        self.file_ended_handlers.append(func)
+        return func
+    
     def on_file_progress(self, func: callable) -> callable: # when a frame is sent
         self.file_progress_handlers.append(func)
         return func
@@ -142,7 +148,12 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         args = (self, self.current_file, self.current_file_index)
         for handler in self.file_changed_handlers:
             asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
-
+    
+    def file_ended(self):
+        args = (self, self.current_file, self.current_file_index)
+        for handler in self.file_ended_handlers:
+            asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
+    
     def file_progress(self, bytes_offset: int, total_bytes: int, percentage: int):
         if self.last_progress_percentage == round(percentage, 1):
             return
