@@ -104,7 +104,10 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         frame = b''
         file_index = self.current_file_index
         files = self.hold_files if len(self.hold_files) else self.input_files
-
+        
+        if not files:
+            return frame
+        
         if file_index >= len(files):
             print('file index unnexistent')
             return
