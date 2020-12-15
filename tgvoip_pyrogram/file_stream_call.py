@@ -183,7 +183,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
             file = self.input_files[file_index]
             file.close()
             self.input_files.popleft()
-            self.current_file = self.input_files[self.current_file_index]
+            self.current_file = self.input_files[file_index] if len(self.input_files) else None
         elif len(self.hold_files):
             file = self.hold_files[file_index]
             file.seek(0)
