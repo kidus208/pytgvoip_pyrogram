@@ -35,6 +35,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         self.current_bytes_offset = 0
         self.force_seek = False
         self.output_file = None
+        self.is_paused = False
         self.ctrl.set_send_audio_frame_callback(self._read_frame)
         self.ctrl.set_recv_audio_frame_callback(self._write_frame)
         self.file_changed_handlers = []
@@ -105,7 +106,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         file_index = self.current_file_index
         files = self.hold_files if len(self.hold_files) else self.input_files
         
-        if not files:
+        if not files or self.is_paused:
             return frame
         
         if file_index >= len(files):
@@ -150,12 +151,12 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
     def file_changed(self):
         args = (self, self.current_file, self.current_file_index)
         for handler in self.file_changed_handlers:
-            asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
+            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args), loop=self.event_loop)
     
     def file_ended(self):
         args = (self, self.current_file, self.current_file_index)
         for handler in self.file_ended_handlers:
-            asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
+            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args), loop=self.event_loop)
     
     def file_progress(self, bytes_offset: int, total_bytes: int, percentage: int):
         if self.last_progress_percentage == round(percentage, 1):
@@ -163,7 +164,7 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         args = (self, bytes_offset, total_bytes, percentage)
         self.last_progress_percentage = round(percentage, 1)
         for handler in self.file_progress_handlers:
-            asyncio.iscoroutinefunction(handler) and asyncio.run_coroutine_threadsafe(handler(*args), self.event_loop)
+            asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(*args), loop=self.event_loop)
 
     def previous_file(self):
         if len(self.input_files):
@@ -206,6 +207,11 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
             self.current_file = files[file_index]
         self.current_bytes_offset = bytes_offset
         self.force_seek = True
+    
+    def pause(self):
+        self.is_paused = True
+    def resume(self):
+        self.is_paused = False
 
 class VoIPOutgoingFileStreamCall(VoIPFileStreamCallMixin, VoIPOutgoingCall):
     pass
