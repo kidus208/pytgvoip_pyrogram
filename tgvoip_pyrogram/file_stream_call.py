@@ -116,7 +116,11 @@ class VoIPFileStreamCallMixin(VoIPCallBase):
         if self.force_seek:
             file.seek(self.current_bytes_offset)
             self.force_seek = False
-        frame = file.read(length)
+        try:
+            frame = file.read(length)
+        except Exception as e:
+            print(e)
+            return b''
         self.current_bytes_offset = file.tell()
 
         if not hasattr(file, 'size'):
